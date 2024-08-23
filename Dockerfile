@@ -9,7 +9,13 @@ RUN adduser --disabled-password --gecos '' camenduru && \
     chown -R camenduru:camenduru /home && \
     chmod -R 777 /home
 
-RUN apt update -y && add-apt-repository -y ppa:git-core/ppa && apt update -y && apt install -y aria2 git git-lfs unzip ffmpeg
+RUN apt update -y && add-apt-repository -y ppa:git-core/ppa && apt update -y && apt install -y aria2 git git-lfs unzip ffmpeg openssh-server
+
+# Configure SSH
+RUN echo 'root:root' | chpasswd && \
+    sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config && \
+    sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config && \
+    echo 'Port 22' >> /etc/ssh/sshd_config
 
 USER camenduru
 
@@ -26,4 +32,6 @@ RUN aria2c --console-log-level=error -c -x 16 -s 16 -k 1M https://huggingface.co
     aria2c --console-log-level=error -c -x 16 -s 16 -k 1M https://huggingface.co/camenduru/FLUX.1-dev/resolve/main/t5xxl_fp16.safetensors -d /content/ComfyUI/models/clip -o t5xxl_fp16.safetensors
 
 WORKDIR /content/ComfyUI
-CMD python main.py --listen --port 7860
+
+# Start SSH and the main application
+CMD service ssh start && python main.py --listen --port 7860
